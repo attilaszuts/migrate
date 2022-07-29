@@ -98,11 +98,11 @@ class HiveClient(ClustersClient):
             os.remove(tmp_ddl_path)
             return current_local_ddl_path
 
-    def update_table_ddl(self, local_table_path, db_path):
+    def update_table_ddl(self, local_table_path, db_path): #TODO: this is the function that adds the location statement!!!
         # check if the database location / path is the default DBFS path
         table_name = os.path.basename(local_table_path)
         is_db_default_path = db_path.startswith('dbfs:/user/hive/warehouse')
-        if (not is_db_default_path) and (not self.is_table_location_defined(local_table_path)):
+        if not self.is_table_location_defined(local_table_path):
             # the LOCATION attribute is not defined and the Database has a custom location defined
             # therefore we need to add it to the DDL, e.g. dbfs:/db_path/table_name
             table_path = db_path + '/' + table_name
@@ -123,9 +123,9 @@ class HiveClient(ClustersClient):
         :return: rest api response
         """
         # get file size in bytes
-        updated_table_status = self.update_table_ddl(local_table_path, db_path)
         # update local table ddl to a new temp file with OPTIONS and TBLPROPERTIES removed from the DDL for delta tables
         if self.is_delta_table(local_table_path):
+            updated_table_status = self.update_table_ddl(local_table_path, db_path) #TODO: this updates the DDL with the location
             local_table_path = self.get_local_tmp_ddl_if_applicable(local_table_path)
 
         f_size_bytes = os.path.getsize(local_table_path)
@@ -372,7 +372,7 @@ class HiveClient(ClustersClient):
             # get the local database path to list tables
             local_db_path = metastore_local_dir + db_name
             # get a dict of the database attributes
-            database_attributes = all_db_details_json.get(db_name, {})
+            database_attributes = all_db_details_json.get(db_name.lower(), {}) #TODO: python is case sensitive!!! 
             if not database_attributes:
                 logging.info(all_db_details_json)
                 raise ValueError('Missing Database Attributes Log. Re-run metastore export')
